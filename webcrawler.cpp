@@ -1,46 +1,8 @@
 #include <iostream>
 #include <string>
-#include <vector>
 #include <set>
 #include <regex>
 #include <curl/curl.h>
-#include <thread>
-
-// // SetList data structure to store URLs
-// class SetList {
-// private:
-//     std::vector<std::string> urls;
-// public:
-//     // Add a URL to the list
-//     void addURL(const std::string& url) {
-//         urls.push_back(url);
-//     }
-//     // Display all URLs in the list
-//     void displayURLs() {
-//         for(std::vector<std::string>::const_iterator it = urls.begin(); it != urls.end(); ++it) {
-//             const std::string& url = *it;
-//             std::cout << url << std::endl;
-//         }
-//     }
-//     // Check if a URL is present in the list
-//     bool containsURL(const std::string& url) {
-//         return std::find(urls.begin(), urls.end(), url) != urls.end();
-//     }
-//     // Clear the list of URLs
-//     void clearList() {
-//         urls.clear();
-//     }
-//     // Remove a specific URL from the list
-//     void removeURL(const std::string& url) {
-//         std::vector<std::string>::const_iterator it = std::find(urls.begin(), urls.end(), url);
-//         if(it != urls.end()) {
-//             urls.erase(it);
-//             std::cout << "URL removed successfully." << std::endl;
-//         } else {
-//             std::cout << "URL not found." << std::endl;
-//         }
-//     }
-// };
 
 // Callback function to receive HTTP response
 size_t writeCallback(char* ptr, size_t size, size_t nmemb, std::string* data) {
@@ -56,9 +18,10 @@ std::string fetchHTML(const std::string& url) {
         curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writeCallback);
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, &data);
+        curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L); // Follow redirects
         CURLcode res = curl_easy_perform(curl);
         if (res != CURLE_OK) {
-            std::cerr << "curl_easy_perform() failed: " << curl_easy_strerror(res) << std::endl;
+            std::cerr << "Failed to fetch URL: " << curl_easy_strerror(res) << std::endl;
         }
         curl_easy_cleanup(curl);
         return data;
@@ -72,7 +35,7 @@ std::string fetchHTML(const std::string& url) {
 std::set<std::string> crawl(const std::string& html) {
     std::set<std::string> urls;
     // Regular expression to find URLs in HTML
-    std::regex urlRegex(R"(href=["'](.*?)["'])");
+    std::regex urlRegex(R"(href=["']([^"']+)["'])");
     auto words_begin = std::sregex_iterator(html.begin(), html.end(), urlRegex);
     auto words_end = std::sregex_iterator();
     for (std::sregex_iterator i = words_begin; i != words_end; ++i) {
@@ -86,9 +49,14 @@ std::set<std::string> crawl(const std::string& html) {
 int main() {
     std::string url;
     std::cout << "Enter the URL: ";
-    std::cin >> url;
+    std::getline(std::cin, url); // Allowing for spaces in the URL
 
     std::string html = fetchHTML(url);
+    if (html.empty()) {
+        std::cerr << "No HTML content fetched. Exiting." << std::endl;
+        return 1; // Error exit code
+    }
+
     std::set<std::string> urlSet = crawl(html);
 
     std::cout << "URLs found in the page:" << std::endl;
@@ -96,5 +64,5 @@ int main() {
         std::cout << u << std::endl;
     }
 
-    return urlSet.size();
+    return 0;
 }
