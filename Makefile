@@ -1,5 +1,8 @@
 CXX = g++ 
-CXXFLAGS = -g3 -Wall -pthread -Xpreprocessor -fopenmp -Ofast
+CXXFLAGS = -std=c++11 -g3 -Wall -pthread -Xpreprocessor -Ofast -o webcrawler -lcurl
+export LDFLAGS="-L/opt/homebrew/opt/curl/lib"
+export CPPFLAGS="-I/opt/homebrew/opt/curl/include"
+
 
 all: webcrawler
 

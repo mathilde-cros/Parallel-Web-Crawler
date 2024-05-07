@@ -48,6 +48,7 @@ std::string downloadWebpageAUX(const std::string& url) {
 
     curl = curl_easy_init();
     if (curl) {
+        curl_easy_setopt(curl, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
         curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
         curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, [](char* ptr, size_t size, size_t nmemb, std::string* data) -> size_t {
@@ -73,13 +74,13 @@ void downloadWebpages(const std::vector<std::string>& urls) {
     std::vector<SetList> SetLists(urls.size());
 
     for (size_t i = 0; i < urls.size(); ++i) {
-    threads.emplace_back([&, i]() {
-        std::string webpage = downloadWebpageAUX(urls[i]);
-        SetLists[i].addURL(urls[i]);
-    });
+        threads.emplace_back([&, i]() {
+            std::string webpage = downloadWebpageAUX(urls[i]);
+            SetLists[i].addURL(urls[i]);
+        });
     }
 
-    for (auto& thread : threads) {
+    for (std::thread& thread : threads) {
         thread.join();
     }
 }
@@ -88,7 +89,7 @@ void downloadWebpages(const std::vector<std::string>& urls) {
 // Crawls webpage and extracts links
 void crawl(SetList& setList, const std::string& url) {
     // Do something to crawl the webpage
-    // Add the links to the setList
+    // Add the links to the SetList
 };
 
 // // Main function to start crawling
@@ -111,6 +112,7 @@ void crawl(SetList& setList, const std::string& url) {
 // }
 
 // Temp main function to test if current implementations work
+// Then we need to add something so that you put the urls as input and main takes care of that, but here I just wanted an example
 int main() {
     std::vector<std::string> urls;
     urls.push_back("https://www.tripadvisor.com/Tourism-g147293-Punta_Cana_La_Altagracia_Province_Dominican_Republic-Vacations.html");
