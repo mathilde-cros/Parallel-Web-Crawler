@@ -1,5 +1,5 @@
 CXX = g++ 
-CXXFLAGS = -g3 -Wall -pthread -L/opt/homebrew/opt/libomp/lib -I/opt/homebrew/opt/libomp/include -Xpreprocessor -fopenmp -lomp -Ofast
+CXXFLAGS = -g3 -Wall -pthread -Xpreprocessor -fopenmp -Ofast
 
 all: webcrawler
 
