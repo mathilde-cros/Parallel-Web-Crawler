@@ -67,23 +67,36 @@ std::string downloadWebpageAUX(const std::string& url) {
 
     return webpage_res;
 }
-
 // Downloads each URL page and creates an associated SetList
-void downloadWebpages(const std::vector<std::string>& urls) {
-    std::vector<std::thread> threads;
-    std::vector<SetList> SetLists(urls.size());
+std::vector<SetList> downloadWebpages(const std::vector<std::string>& urls) {
+    std::vector<SetList> setLists;
 
-    for (size_t i = 0; i < urls.size(); ++i) {
-        threads.emplace_back([&, i]() {
-            std::string webpage = downloadWebpageAUX(urls[i]);
-            SetLists[i].addURL(urls[i]);
-        });
+    for (const auto& url : urls) {
+        SetList setList;
+        std::string webpage = downloadWebpageAUX(url);
+        setList.addURL(url);
+        setLists.push_back(setList);
     }
 
-    for (std::thread& thread : threads) {
-        thread.join();
-    }
+    return setLists;
 }
+
+// // Downloads each URL page and creates an associated SetList (concurrently)
+// void downloadWebpages(const std::vector<std::string>& urls) {
+//     std::vector<std::thread> threads;
+//     std::vector<SetList> SetLists(urls.size());
+
+//     for (size_t i = 0; i < urls.size(); ++i) {
+//         threads.emplace_back([&, i]() {
+//             std::string webpage = downloadWebpageAUX(urls[i]);
+//             SetLists[i].addURL(urls[i]);
+//         });
+//     }
+
+//     for (std::thread& thread : threads) {
+//         thread.join();
+//     }
+// }
 
 
 // Crawls webpage and extracts links
@@ -115,9 +128,11 @@ void crawl(SetList& setList, const std::string& url) {
 // Then we need to add something so that you put the urls as input and main takes care of that, but here I just wanted an example
 int main() {
     std::vector<std::string> urls;
+    // Let's try with only one url for now
+    // urls.push_back("https://www.wikipedia.org");
     urls.push_back("https://www.tripadvisor.com/Tourism-g147293-Punta_Cana_La_Altagracia_Province_Dominican_Republic-Vacations.html");
-    urls.push_back("https://www.pagesjaunes.fr/pros/08380256");
-    urls.push_back("https://www.yelp.fr/search?find_desc=Restaurants&find_loc=Paris");
+    // urls.push_back("https://www.pagesjaunes.fr/pros/08380256");
+    // urls.push_back("https://www.yelp.fr/search?find_desc=Restaurants&find_loc=Paris");
 
     downloadWebpages(urls);
 
