@@ -5,6 +5,37 @@
 
 // SetList data structure to store URLs
 class SetList {
+private:
+    std::vector<std::string> urls;
+public:
+    // Add a URL to the list
+    void addURL(const std::string& url) {
+        urls.push_back(url);
+    }
+    // Display all URLs in the list
+    void displayList() {
+        for(const auto& url : urls) {
+            std::cout << url << std::endl;
+        }
+    }
+    // Check if a URL is present in the list
+    bool containsURL(const std::string& url) {
+        return std::find(urls.begin(), urls.end(), url) != urls.end();
+    }
+    // Clear the list of URLs
+    void clearList() {
+        urls.clear();
+    }
+    // Remove a specific URL from the list
+    void removeURL(const std::string& url) {
+        auto it = std::find(urls.begin(), urls.end(), url);
+        if(it != urls.end()) {
+            urls.erase(it);
+            std::cout << "URL removed successfully." << std::endl;
+        } else {
+            std::cout << "URL not found." << std::endl;
+        }
+    }
 };
 
 // Downloads webpage using libcurl
