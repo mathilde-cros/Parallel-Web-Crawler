@@ -19,9 +19,11 @@ std::string fetchHTML(const std::string& url) {
         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writeCallback);
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, &data);
         curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L); // Follow redirects
+        curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
         CURLcode res = curl_easy_perform(curl);
         if (res != CURLE_OK) {
             std::cerr << "Failed to fetch URL: " << curl_easy_strerror(res) << std::endl;
+            return ""; // Return empty string to indicate failure
         }
         curl_easy_cleanup(curl);
         return data;
@@ -47,9 +49,19 @@ std::set<std::string> crawl(const std::string& html) {
 }
 
 int main() {
+
+    // Example link to use: https://en.wikipedia.org/wiki/Concurrent_computing
+
     std::string url;
     std::cout << "Enter the URL: ";
     std::getline(std::cin, url); // Allowing for spaces in the URL
+
+    // Validate the URL format
+    std::regex urlFormat(R"(https?://\S+)");
+    if (!std::regex_match(url, urlFormat)) {
+        std::cerr << "Invalid URL format. Please enter a valid URL starting with http:// or https://" << std::endl;
+        return 1;
+    }
 
     std::string html = fetchHTML(url);
     if (html.empty()) {
@@ -58,11 +70,9 @@ int main() {
     }
 
     std::set<std::string> urlSet = crawl(html);
-
     std::cout << "URLs found in the page:" << std::endl;
     for (const auto& u : urlSet) {
         std::cout << u << std::endl;
     }
-
     return 0;
 }
