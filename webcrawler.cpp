@@ -1,6 +1,7 @@
 #include <iostream>
 #include <string>
 #include <set>
+#include <unordered_set>
 #include <regex>
 #include <curl/curl.h>
 
@@ -48,6 +49,21 @@ std::set<std::string> crawl(const std::string& html) {
     return urls;
 }
 
+// Function to extract URLs from crawling the HTML content using regex
+std::unordered_set<std::string> crawl_hash(const std::string& html) {
+    std::unordered_set<std::string> urls;
+    // Regular expression to find URLs in HTML
+    std::regex urlRegex(R"(href=["']([^"']+)["'])");
+    auto words_begin = std::sregex_iterator(html.begin(), html.end(), urlRegex);
+    auto words_end = std::sregex_iterator();
+    for (std::sregex_iterator i = words_begin; i != words_end; ++i) {
+        std::smatch match = *i;
+        std::string url = match[1].str();
+        urls.insert(url);
+    }
+    return urls;
+}
+
 int main() {
 
     // Example link to use: https://en.wikipedia.org/wiki/Concurrent_computing
@@ -55,6 +71,8 @@ int main() {
     std::string url;
     std::cout << "Enter the URL: ";
     std::getline(std::cin, url); // Allowing for spaces in the URL
+
+    bool use_hash = 1; // set to 1 to use a hash table to store the URLs instead of SETLIST
 
     // Validate the URL format
     std::regex urlFormat(R"(https?://\S+)");
@@ -69,10 +87,20 @@ int main() {
         return 1; // Error exit code
     }
 
-    std::set<std::string> urlSet = crawl(html);
-    std::cout << "URLs found in the page:" << std::endl;
-    for (const auto& u : urlSet) {
-        std::cout << u << std::endl;
+    if (use_hash) {
+        std::cout << "Using hash table to store URLs" << std::endl;
+        std::unordered_set<std::string> urlSet = crawl_hash(html);
+        std::cout << "URLs found in the page:" << std::endl;
+        for (const auto& u : urlSet) {
+            std::cout << u << std::endl;
+        }
+    } else {
+        std::cout << "Using listset to store URLs" << std::endl;
+        std::set<std::string> urlSet = crawl(html);
+        std::cout << "URLs found in the page:" << std::endl;
+        for (const auto& u : urlSet) {
+            std::cout << u << std::endl;
+        }
     }
     return 0;
 }
