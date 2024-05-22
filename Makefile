@@ -7,16 +7,9 @@ all: webcrawler
 
 clean:
 		rm -f webcrawler webcrawler.o
-		rm -f webcrawlerjas webcrawlerjas.o
 
 webcrawler: webcrawler.o
 		$(CXX) $(CXXFLAGS) -o $@ $^
 
 webcrawler.o: webcrawler.cpp
-		$(CXX) $(CXXFLAGS) -c -o $@ $<
-
-webcrawlerjas: webcrawlerjas.o
-		$(CXX) $(CXXFLAGS) -o $@ $^
-
-webcrawlerjas.o: webcrawler2.cpp
 		$(CXX) $(CXXFLAGS) -c -o $@ $<

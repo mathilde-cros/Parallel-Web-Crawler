@@ -1,9 +1,9 @@
 #include <iostream>
 #include <string>
-#include <set>
-#include <unordered_set>
 #include <regex>
+#include <vector>
 #include <curl/curl.h>
+#include "hashtable.cpp"
 
 // Callback function to receive HTTP response
 size_t writeCallback(char* ptr, size_t size, size_t nmemb, std::string* data) {
@@ -35,44 +35,36 @@ std::string fetchHTML(const std::string& url) {
 }
 
 // Function to extract URLs from crawling the HTML content using regex
-std::set<std::string> crawl(const std::string& html) {
-    std::set<std::string> urls;
+void crawl(std::string &url, SetList &urlSet) {
+    std::string html = fetchHTML(url);
+    if (html.empty()) {
+        return;
+    }
     // Regular expression to find URLs in HTML
     std::regex urlRegex(R"(href=["']([^"']+)["'])");
     auto words_begin = std::sregex_iterator(html.begin(), html.end(), urlRegex);
     auto words_end = std::sregex_iterator();
     for (std::sregex_iterator i = words_begin; i != words_end; ++i) {
         std::smatch match = *i;
-        std::string url = match[1].str();
-        urls.insert(url);
+        std::string url2 = match[1].str();
+        if (urlSet.containsURL(url2)){
+            continue;
+        }
+        urlSet.addURL(url2);
+        crawl(url2, urlSet);
     }
-    return urls;
 }
 
-// Function to extract URLs from crawling the HTML content using regex
-std::unordered_set<std::string> crawl_hash(const std::string& html) {
-    std::unordered_set<std::string> urls;
-    // Regular expression to find URLs in HTML
-    std::regex urlRegex(R"(href=["']([^"']+)["'])");
-    auto words_begin = std::sregex_iterator(html.begin(), html.end(), urlRegex);
-    auto words_end = std::sregex_iterator();
-    for (std::sregex_iterator i = words_begin; i != words_end; ++i) {
-        std::smatch match = *i;
-        std::string url = match[1].str();
-        urls.insert(url);
+int main(int argc, char* argv[]) {
+
+    if (argc != 2){
+        std::cerr << "Invalid command, please give as argument the url you want to crawl" << std::endl;
+        return 1;
     }
-    return urls;
-}
 
-int main() {
-
-    // Example link to use: https://en.wikipedia.org/wiki/Concurrent_computing
-
-    std::string url;
-    std::cout << "Enter the URL: ";
-    std::getline(std::cin, url); // Allowing for spaces in the URL
-
-    bool use_hash = 1; // set to 1 to use a hash table to store the URLs instead of SETLIST
+    std::string url = argv[1];
+    // Add as argument hash_table (when created)
+    // Add as argument to keep only url starting like first one!
 
     // Validate the URL format
     std::regex urlFormat(R"(https?://\S+)");
@@ -81,26 +73,11 @@ int main() {
         return 1;
     }
 
-    std::string html = fetchHTML(url);
-    if (html.empty()) {
-        std::cerr << "No HTML content fetched. Exiting." << std::endl;
-        return 1; // Error exit code
-    }
+    SetList urlSet;
+    urlSet.addURL(url);
+    crawl(url, urlSet);
+    std::cout << "URLs found" << std::endl;
+    urlSet.displayList();
 
-    if (use_hash) {
-        std::cout << "Using hash table to store URLs" << std::endl;
-        std::unordered_set<std::string> urlSet = crawl_hash(html);
-        std::cout << "URLs found in the page:" << std::endl;
-        for (const auto& u : urlSet) {
-            std::cout << u << std::endl;
-        }
-    } else {
-        std::cout << "Using listset to store URLs" << std::endl;
-        std::set<std::string> urlSet = crawl(html);
-        std::cout << "URLs found in the page:" << std::endl;
-        for (const auto& u : urlSet) {
-            std::cout << u << std::endl;
-        }
-    }
     return 0;
 }
