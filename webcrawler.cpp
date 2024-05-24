@@ -23,7 +23,7 @@ std::string fetchHTML(const std::string& url) {
         curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
         CURLcode res = curl_easy_perform(curl);
         if (res != CURLE_OK) {
-            std::cerr << "Failed to fetch URL: " << curl_easy_strerror(res) << std::endl;
+            // std::cerr << "Failed to fetch URL: " << curl_easy_strerror(res) << std::endl;
             return ""; // Return empty string to indicate failure
         }
         curl_easy_cleanup(curl);
@@ -35,7 +35,7 @@ std::string fetchHTML(const std::string& url) {
 }
 
 // Function to extract URLs from crawling the HTML content using regex
-void crawl(std::string &url, SetList &urlSet) {
+void crawl(std::string &url, const std::string &base_url, SetList &urlSet) {
     std::string html = fetchHTML(url);
     if (html.empty()) {
         return;
@@ -47,11 +47,17 @@ void crawl(std::string &url, SetList &urlSet) {
     for (std::sregex_iterator i = words_begin; i != words_end; ++i) {
         std::smatch match = *i;
         std::string url2 = match[1].str();
+
+        // To ensure that the URL starts with the base URL
+        if (url2.find(base_url) != 0) {
+            continue;
+        }
+
         if (urlSet.containsURL(url2)){
             continue;
         }
         urlSet.addURL(url2);
-        crawl(url2, urlSet);
+        crawl(url2, base_url, urlSet);
     }
 }
 
@@ -64,18 +70,28 @@ int main(int argc, char* argv[]) {
 
     std::string url = argv[1];
     // Add as argument hash_table (when created)
-    // Add as argument to keep only url starting like first one!
+
+    // Keep only url starting like first one in order to avoid crawling the whole internet (ex. redirects to instagram.com ...)!
+    std::regex baseUrlRegex(R"((https?://[^/]+))");
+    std::smatch baseUrlMatch;
+    std::string base_url;
+    if (std::regex_search(url, baseUrlMatch, baseUrlRegex)) {
+        base_url = baseUrlMatch[1].str();
+    } else {
+        std::cerr << "Failed to extract base URL." << std::endl;
+        return 1;
+    }
 
     // Validate the URL format
     std::regex urlFormat(R"(https?://\S+)");
     if (!std::regex_match(url, urlFormat)) {
-        std::cerr << "Invalid URL format. Please enter a valid URL starting with http:// or https://" << std::endl;
+        // std::cerr << "Invalid URL format. Please enter a valid URL starting with http:// or https://" << std::endl;
         return 1;
     }
 
     SetList urlSet;
     urlSet.addURL(url);
-    crawl(url, urlSet);
+    crawl(url, base_url, urlSet);
     std::cout << "URLs found" << std::endl;
     urlSet.displayList();
 
