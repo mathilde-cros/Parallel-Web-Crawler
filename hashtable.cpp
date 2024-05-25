@@ -164,20 +164,26 @@ private:
     std::vector<std::mutex> locks;
 
 public:
-    StripedHashTable(int capacity) : BaseHashTable<T>(capacity) {}
+    StripedHashTable(int capacity) : BaseHashTable<T>(capacity), locks(capacity) {}
 
-    // Resize the hash table
-    void resize() {
-        int oldCapacity = this->table.size();
+    // Checks if the hash table is too big and has to be resized
+    bool policy() {
         for (auto& lock : locks){
             lock.lock();
         }
-        if (oldCapacity != this->table.size()){
-            for (auto& lock : locks) {
-                lock.unlock();
-            }
-            return;
+        bool answer = this->setSize / this->table.size() > 4;
+        for (auto& lock : locks){
+            lock.unlock();
         }
+        return answer;
+    }
+
+    // Resize the hash table
+    void resize() {
+        for (auto& lock : locks){
+            lock.lock();
+        }
+        int oldCapacity = this->table.size();
         int newCapacity = 2 * oldCapacity;
         std::vector<std::vector<T>> oldTable = this->table;
         this->table = std::vector<std::vector<T>>(newCapacity);

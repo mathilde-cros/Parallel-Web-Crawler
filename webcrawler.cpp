@@ -3,12 +3,43 @@
 #include <regex>
 #include <vector>
 #include <curl/curl.h>
+#include <chrono>
 #include "hashtable.cpp"
 
 // Callback function to receive HTTP response
 size_t writeCallback(char* ptr, size_t size, size_t nmemb, std::string* data) {
     data->append(ptr, size * nmemb);
     return size * nmemb;
+}
+
+// Function to check if URL exists
+bool urlExists(const std::string& url) {
+    CURL* curl;
+    CURLcode res;
+    long response_code = 0;
+
+    curl_global_init(CURL_GLOBAL_DEFAULT);
+    curl = curl_easy_init();
+
+    if(curl) {
+        curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+        curl_easy_setopt(curl, CURLOPT_NOBODY, 1L); // We don't need the body
+        curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L); // Follow redirects
+
+        res = curl_easy_perform(curl);
+        
+        if(res == CURLE_OK) {
+            curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
+            if(response_code == 200) {
+                curl_easy_cleanup(curl);
+                curl_global_cleanup();
+                return true;
+            }
+        }
+        curl_easy_cleanup(curl);
+    }
+    curl_global_cleanup();
+    return false;
 }
 
 // Function to fetch HTML content from a URL
@@ -35,11 +66,13 @@ std::string fetchHTML(const std::string& url) {
 }
 
 // Function to extract URLs from crawling the HTML content using regex
-void crawl(std::string &url, const std::string &base_url, SetList &urlSet) {
+template <class T>
+void crawl(std::string &url, const std::string &base_url, T &urlSet) {
     std::string html = fetchHTML(url);
     if (html.empty()) {
         return;
     }
+    urlSet.addURL(url);
     // Regular expression to find URLs in HTML
     std::regex urlRegex(R"(href=["']([^"']+)["'])");
     auto words_begin = std::sregex_iterator(html.begin(), html.end(), urlRegex);
@@ -50,26 +83,39 @@ void crawl(std::string &url, const std::string &base_url, SetList &urlSet) {
 
         // To ensure that the URL starts with the base URL
         if (url2.find(base_url) != 0) {
-            continue;
+            if (url2.find('#') != std::string::npos || url2.find("//") != std::string::npos){
+                continue;
+            }else if (url2.find('/') == 0) {
+                url2 = base_url + url2;
+            } else if (url2.find('/') == std::string::npos){
+                url2 = base_url + '/' + url2;
+            } else {
+                continue;
+            }
         }
-
         if (urlSet.containsURL(url2)){
             continue;
         }
-        urlSet.addURL(url2);
+        std::string newBaseUrl = (url2.back() == '/') ? url2.substr(url2.size()-1) : url2;
         crawl(url2, base_url, urlSet);
     }
 }
 
 int main(int argc, char* argv[]) {
 
-    if (argc != 2){
-        std::cerr << "Invalid command, please give as argument the url you want to crawl" << std::endl;
+    if (argc != 3){
+        std::cerr << "Invalid command, please give your command as:" << std::endl;
+        std::cerr << "./webcrawler <opt_set> <url>" << std::endl;
+        std::cerr << "opt_set being 0 (SetList), 1 (CoarsedHashTable), or 2 (StripedHashTable)" << std::endl;
+        std::cerr << "\t\t defining the set you want to use to store the urls" << std::endl;
+        std::cerr << "url being the url you want to crawl" << std::endl;
         return 1;
     }
 
-    std::string url = argv[1];
-    // Add as argument hash_table (when created)
+    auto start = std::chrono::high_resolution_clock::now();
+
+    int option_urlset = std::stoi(argv[1]);
+    std::string url = argv[2];
 
     // Keep only url starting like first one in order to avoid crawling the whole internet (ex. redirects to instagram.com ...)!
     std::regex baseUrlRegex(R"((https?://[^/]+))");
@@ -81,6 +127,7 @@ int main(int argc, char* argv[]) {
         std::cerr << "Failed to extract base URL." << std::endl;
         return 1;
     }
+    std::cout << "Base URL: " << base_url << std::endl;
 
     // Validate the URL format
     std::regex urlFormat(R"(https?://\S+)");
@@ -89,11 +136,33 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    SetList urlSet;
-    urlSet.addURL(url);
-    crawl(url, base_url, urlSet);
-    std::cout << "URLs found" << std::endl;
-    urlSet.displayList();
+    if (option_urlset == 0){
+        SetList urlSet;
+        crawl(url, base_url, urlSet);
+        std::cout << "URLs found" << std::endl;
+        urlSet.displayList();
+        std::cout << "Number of URLs: " << urlSet.getSize() << std::endl;
+    } else if (option_urlset == 1){
+        CoarseHashTable<std::string> urlSet(32);
+        crawl(url, base_url, urlSet);
+        std::cout << "URLs found" << std::endl;
+        urlSet.displayList();
+        std::cout << "Number of URLs: " << urlSet.getSize() << std::endl;
+    } else if (option_urlset == 2){
+        StripedHashTable<std::string> urlSet(32);
+        crawl(url, base_url, urlSet);
+        std::cout << "URLs found" << std::endl;
+        urlSet.displayList();
+        std::cout << "Number of URLs: " << urlSet.getSize() << std::endl;
+    } else {
+        std::cerr << "Wrong url set option, please use 0 (SetList), 1 (CoarseHashTable) or 2 (StripedHashTable)" << std::endl;
+        return 1;
+    }
+
+    auto stop = std::chrono::high_resolution_clock::now(); 
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+	std::cout << "Execution time (seconds): ";
+	std::cout << duration.count()/1000/1000 << std::endl;
 
     return 0;
 }
