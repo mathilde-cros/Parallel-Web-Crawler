@@ -140,19 +140,19 @@ int main(int argc, char* argv[]) {
         SetList urlSet;
         crawl(url, base_url, urlSet);
         std::cout << "URLs found" << std::endl;
-        urlSet.displayList();
+        urlSet.display();
         std::cout << "Number of URLs: " << urlSet.getSize() << std::endl;
     } else if (option_urlset == 1){
         CoarseHashTable<std::string> urlSet(32);
         crawl(url, base_url, urlSet);
         std::cout << "URLs found" << std::endl;
-        urlSet.displayList();
+        urlSet.display();
         std::cout << "Number of URLs: " << urlSet.getSize() << std::endl;
     } else if (option_urlset == 2){
         StripedHashTable<std::string> urlSet(32);
         crawl(url, base_url, urlSet);
         std::cout << "URLs found" << std::endl;
-        urlSet.displayList();
+        urlSet.display();
         std::cout << "Number of URLs: " << urlSet.getSize() << std::endl;
     } else {
         std::cerr << "Wrong url set option, please use 0 (SetList), 1 (CoarseHashTable) or 2 (StripedHashTable)" << std::endl;

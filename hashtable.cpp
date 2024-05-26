@@ -26,7 +26,7 @@ public:
     }
 
     // Display all URLs in the list
-    void displayList() const {
+    void display() const {
         for (const auto& url : urls) {
             std::cout << url << std::endl;
         }
@@ -89,7 +89,7 @@ public:
     }
 
     // Display all URLs in the hash table
-    void displayList() const {
+    void display() const {
         for (const auto& bucket : table) {
             for (const auto& url : bucket) {
                 std::cout << url << std::endl;
