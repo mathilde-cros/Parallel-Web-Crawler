@@ -128,7 +128,7 @@ void ThreadPool::process_task_from_queue() {
 
 // Parallel function to extract URLs from crawling the HTML content using regex
 template <class T>
-void crawl_parallel(std::string url, const std::string& base_url, T &urlSet, ThreadPool& threadPool, std::mutex& setMutex) {
+void crawl_parallel(std::string url, const std::string& base_url, T& urlSet, ThreadPool& threadPool, std::mutex& setMutex) {
     std::string html = fetchHTML(url);
     if (html.empty()) {
         return;
@@ -159,7 +159,7 @@ void crawl_parallel(std::string url, const std::string& base_url, T &urlSet, Thr
         }
         {
             std::lock_guard<std::mutex> lock(setMutex);
-            if (urlSet.containsURL(url2)){
+            if (!urlSet.addURL(url2)) {
                 continue;
             }
         }
@@ -213,7 +213,7 @@ int main(int argc, char* argv[]) {
         threadPool.add_task_to_queue([url, base_url, &urlSet, &threadPool, &setMutex]() {
             crawl_parallel(url, base_url, urlSet, threadPool, setMutex);
         });
-        std::this_thread::sleep_for(std::chrono::seconds(30));
+        std::this_thread::sleep_for(std::chrono::seconds(6)); // We found that we need to wait for 6 seconds to get the desired result with threads
         std::cout << "URLs found" << std::endl;
         urlSet.display();
         std::cout << "Number of URLs: " << urlSet.getSize() << std::endl;
