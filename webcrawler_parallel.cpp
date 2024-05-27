@@ -222,7 +222,7 @@ int main(int argc, char* argv[]) {
         threadPool.add_task_to_queue([url, base_url, &urlSet, &threadPool, &setMutex]() {
             crawl_parallel(url, base_url, urlSet, threadPool, setMutex);
         });
-        std::this_thread::sleep_for(std::chrono::seconds(30));
+        std::this_thread::sleep_for(std::chrono::seconds(7)); // We found that we need to wait for 7 seconds to get the desired result with threads
         std::cout << "URLs found" << std::endl;
         urlSet.display();
         std::cout << "Number of URLs: " << urlSet.getSize() << std::endl;
@@ -231,7 +231,7 @@ int main(int argc, char* argv[]) {
         threadPool.add_task_to_queue([url, base_url, &urlSet, &threadPool, &setMutex]() {
             crawl_parallel(url, base_url, urlSet, threadPool, setMutex);
         });
-        std::this_thread::sleep_for(std::chrono::seconds(30));
+        std::this_thread::sleep_for(std::chrono::seconds(31)); // We found that we need to wait for 31 seconds to get the desired result with threads
         std::cout << "URLs found" << std::endl;
         urlSet.display();
         std::cout << "Number of URLs: " << urlSet.getSize() << std::endl;
