@@ -28,23 +28,18 @@ ThreadPool::ThreadPool(size_t numThreads) {
 ThreadPool::~ThreadPool() {
     for (std::thread& worker : workers) {
         worker.join();
-        std::cout << "Stop thread" << std::endl;
     }
-    std::cout << "Destructed" << std::endl;
 }
 
 void ThreadPool::add_task_to_queue(const std::function<void()>& task) {
     std::unique_lock<std::mutex> lock(queueMutex);
-    std::cout << "Push task" << std::endl;
     tasks.push(task);
     condition.notify_one();
 }
 
 void ThreadPool::process_task_from_queue() {
-    std::cout << "Process task from queue" << std::endl;
     int i = 0;
     while (true) {
-        std::cout << "Process  new task" << std::endl;
         std::function<void()> task;
         {
             std::unique_lock<std::mutex> lock(queueMutex);
@@ -52,7 +47,6 @@ void ThreadPool::process_task_from_queue() {
                 condition.wait(lock, [this]() { return !tasks.empty(); });
             } 
             if (tasks.empty()) {
-                std::cout << "Empty task return" << std::endl;
                 return;
             } 
             task = std::move(tasks.front());
