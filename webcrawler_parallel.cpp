@@ -71,73 +71,15 @@ std::string fetchHTML(const std::string& url) {
     }
 }
 
-// Thread pool to manage threads while crawling the website
-class ThreadPool {
-    std::vector<std::thread> workers;
-    std::queue<std::function<void()>> tasks;
-    std::mutex queueMutex;
-    std::condition_variable condition;
-    bool stop;
-
-    void process_task_from_queue();
-
-public:
-    ThreadPool(size_t numThreads);
-    ~ThreadPool();
-    void add_task_to_queue(const std::function<void()>& task);
-};
-
-ThreadPool::ThreadPool(size_t numThreads) : stop(false) {
-    for (size_t i = 0; i < numThreads; ++i) {
-        workers.emplace_back(&ThreadPool::process_task_from_queue, this);
-    }
-}
-
-ThreadPool::~ThreadPool() {
-    {
-        std::unique_lock<std::mutex> lock(queueMutex);
-        stop = true;
-    }
-    condition.notify_all();
-    for (std::thread& worker : workers) {
-        worker.join();
-    }
-}
-
-void ThreadPool::add_task_to_queue(const std::function<void()>& task) {
-    {
-        std::unique_lock<std::mutex> lock(queueMutex);
-        tasks.push(task);
-    }
-    condition.notify_one();
-}
-
-void ThreadPool::process_task_from_queue() {
-    while (true) {
-        std::function<void()> task;
-        {
-            std::unique_lock<std::mutex> lock(queueMutex);
-            condition.wait(lock, [this]() { return stop || !tasks.empty(); });
-            if (stop && tasks.empty()) {
-                return;
-            }
-            task = std::move(tasks.front());
-            tasks.pop();
-        }
-        task();
-    }
-}
-
 // Parallel function to extract URLs from crawling the HTML content using regex
 template <class T>
-void crawl_parallel(std::string url, const std::string& base_url, T& urlSet, ThreadPool& threadPool, std::mutex& setMutex) {
+void crawl_parallel(std::string url, const std::string& base_url, T& urlSet, ThreadPool& threadPool) {
     std::string html = fetchHTML(url);
     if (html.empty()) {
         return;
     }
-    {
-        std::lock_guard<std::mutex> lock(setMutex);
-        urlSet.addURL(url);
+    if (!urlSet.addURL(url)){
+        return;
     }
     // Regular expression to find URLs in HTML
     std::regex urlRegex(R"(href=["']([^"']+)["'])");
@@ -149,25 +91,31 @@ void crawl_parallel(std::string url, const std::string& base_url, T& urlSet, Thr
 
         // To ensure that the URL starts with the base URL
         if (url2.find(base_url) != 0) {
-            if (url2.find('#') != std::string::npos || url2.find("//") != std::string::npos){
-                continue;
-            }else if (url2.find('/') == 0) {
+            if (url2.find('#') != std::string::npos 
+                || url2.find("//") != std::string::npos 
+                || url2.find(":") != std::string::npos 
+                || url2.find("{") != std::string::npos){
+                continue; // Pass if the url is an id on the page (#), another protocol (// or :) or a script ({)
+            }else if (url2.find('/') == 0) { // Relative url 
                 url2 = base_url + url2;
-            } else if (url2.find('/') != 0){
-                url2 = url + '/' + url2;
+            } else if (url2.find('/') == std::string::npos){ // relative url
+                url2 = base_url + '/' + url2;
             } else {
                 continue;
             }
         }
-        {
-            std::lock_guard<std::mutex> lock(setMutex);
-            if (!urlSet.addURL(url2)) {
-                continue;
-            }
+        if (url2.find('#') != std::string::npos){ // Remove ids on page
+            url2 = url2.substr(0, url2.find("#"));
+        }
+        if (url2.find('?') != std::string::npos){  // Remove arguments on page
+            url2 = url2.substr(0, url2.find("?"));
+        }
+        if (urlSet.containsURL(url2)) {
+            continue;
         }
 
-        threadPool.add_task_to_queue([url2, base_url, &urlSet, &threadPool, &setMutex]() {
-            crawl_parallel(url2, base_url, urlSet, threadPool, setMutex);
+        threadPool.add_task_to_queue([url2, base_url, &urlSet, &threadPool]() {
+            crawl_parallel(url2, base_url, urlSet, threadPool);
         });
     }
 }
@@ -207,33 +155,32 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    std::mutex setMutex;
-    ThreadPool threadPool(256);
+    ThreadPool* threadPool = new ThreadPool(3);
 
     if (option_urlset == 0){
         SetList urlSet;
-        threadPool.add_task_to_queue([url, base_url, &urlSet, &threadPool, &setMutex]() {
-            crawl_parallel(url, base_url, urlSet, threadPool, setMutex);
+        threadPool->add_task_to_queue([url, base_url, &urlSet, &threadPool]() {
+            crawl_parallel(url, base_url, urlSet, *threadPool);
         });
-        std::this_thread::sleep_for(std::chrono::seconds(6)); // We found that we need to wait for 6 seconds to get the desired result with threads
+        delete threadPool;
         std::cout << "URLs found" << std::endl;
         urlSet.display();
         std::cout << "Number of URLs: " << urlSet.getSize() << std::endl;
     } else if (option_urlset == 1){
         CoarseHashTable<std::string> urlSet(32);
-        threadPool.add_task_to_queue([url, base_url, &urlSet, &threadPool, &setMutex]() {
-            crawl_parallel(url, base_url, urlSet, threadPool, setMutex);
+        threadPool->add_task_to_queue([url, base_url, &urlSet, &threadPool]() {
+            crawl_parallel(url, base_url, urlSet, *threadPool);
         });
-        std::this_thread::sleep_for(std::chrono::seconds(7)); // We found that we need to wait for 7 seconds to get the desired result with threads
+        delete threadPool;
         std::cout << "URLs found" << std::endl;
         urlSet.display();
         std::cout << "Number of URLs: " << urlSet.getSize() << std::endl;
     } else if (option_urlset == 2){
         StripedHashTable<std::string> urlSet(32);
-        threadPool.add_task_to_queue([url, base_url, &urlSet, &threadPool, &setMutex]() {
-            crawl_parallel(url, base_url, urlSet, threadPool, setMutex);
+        threadPool->add_task_to_queue([url, base_url, &urlSet, &threadPool]() {
+            crawl_parallel(url, base_url, urlSet, *threadPool);
         });
-        std::this_thread::sleep_for(std::chrono::seconds(31)); // We found that we need to wait for 31 seconds to get the desired result with threads
+        delete threadPool;
         std::cout << "URLs found" << std::endl;
         urlSet.display();
         std::cout << "Number of URLs: " << urlSet.getSize() << std::endl;
