@@ -22,13 +22,16 @@ To compile and run the code, you need [libcurl](https://curl.se/libcurl/) instal
 To compile and run the code, you can do:
 ``` sh
 make 
-./webcrawler <URL>
+./webcrawler <int> <URL>
 ``` 
 
 With \<URL> the URL to crawl in the format: http://... or https://...
+And with \<int> being 0, 1 or 2 according to the saving method you wish to use for the URLs:
+- 0 : SetList
+- 1 : CoarseHashTable
+- 2 : StripedHashTable
 
 ## Authors
 
 Mathilde Cros (mathilde.cros@polytechnique.edu)
-
 Jasmine Watissee (jasmine.watissee@polytechnique.edu)
