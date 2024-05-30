@@ -4,11 +4,13 @@
 #include <vector>
 #include <curl/curl.h>
 #include <chrono>
-#include "hashtable.cpp"
 #include <thread>
 #include <mutex>
 #include <condition_variable>
 #include <queue>
+
+#include "hashtable.cpp"
+#include "threadpool.cpp"
 
 // Callback function to receive HTTP response
 size_t writeCallback(char* ptr, size_t size, size_t nmemb, std::string* data) {
@@ -149,10 +151,10 @@ void crawl_parallel(std::string url, const std::string& base_url, T& urlSet, Thr
         if (url2.find(base_url) != 0) {
             if (url2.find('#') != std::string::npos || url2.find("//") != std::string::npos){
                 continue;
-            } else if (url2.find('/') == 0) {
+            }else if (url2.find('/') == 0) {
                 url2 = base_url + url2;
-            } else if (url2.find('/') == std::string::npos) {
-                url2 = base_url + '/' + url2;
+            } else if (url2.find('/') != 0){
+                url2 = url + '/' + url2;
             } else {
                 continue;
             }
@@ -163,7 +165,7 @@ void crawl_parallel(std::string url, const std::string& base_url, T& urlSet, Thr
                 continue;
             }
         }
-        std::string newBaseUrl = (url2.back() == '/') ? url2.substr(0, url2.size() - 1) : url2;
+
         threadPool.add_task_to_queue([url2, base_url, &urlSet, &threadPool, &setMutex]() {
             crawl_parallel(url2, base_url, urlSet, threadPool, setMutex);
         });

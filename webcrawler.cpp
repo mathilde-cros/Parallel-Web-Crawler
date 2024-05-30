@@ -83,20 +83,29 @@ void crawl(std::string &url, const std::string &base_url, T &urlSet) {
 
         // To ensure that the URL starts with the base URL
         if (url2.find(base_url) != 0) {
-            if (url2.find('#') != std::string::npos || url2.find("//") != std::string::npos){
-                continue;
-            }else if (url2.find('/') == 0) {
+            if (url2.find('#') != std::string::npos 
+                || url2.find("//") != std::string::npos 
+                || url2.find(":") != std::string::npos 
+                || url2.find("{") != std::string::npos){
+                continue; // Pass if the url is an id on the page (#), another protocol (// or :) or a script ({)
+            }else if (url2.find('/') == 0) { // Relative url 
                 url2 = base_url + url2;
-            } else if (url2.find('/') == std::string::npos){
+            } else if (url2.find('/') == std::string::npos){ // relative url
                 url2 = base_url + '/' + url2;
             } else {
                 continue;
             }
         }
+        if (url2.find('#') != std::string::npos){ // Remove ids on page
+            url2 = url2.substr(0, url2.find("#"));
+        }
+        if (url2.find('?') != std::string::npos){  // Remove argumnets on page
+            url2 = url2.substr(0, url2.find("?"));
+        }
         if (urlSet.containsURL(url2)){
             continue;
         }
-        std::string newBaseUrl = (url2.back() == '/') ? url2.substr(url2.size()-1) : url2;
+
         crawl(url2, base_url, urlSet);
     }
 }
