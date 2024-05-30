@@ -1,6 +1,5 @@
 *.DS_Store
 *.vscode/
+*.o
 webcrawler
-webcrawler.o
 webcrawler_parallel
-webcrawler_parallel.o
