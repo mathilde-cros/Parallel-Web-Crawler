@@ -12,6 +12,8 @@
 #include "hashtable.cpp"
 #include "threadpool.cpp"
 
+#define NUM_THREADS 3
+
 // Callback function to receive HTTP response
 size_t writeCallback(char* ptr, size_t size, size_t nmemb, std::string* data) {
     data->append(ptr, size * nmemb);
@@ -155,7 +157,7 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    ThreadPool* threadPool = new ThreadPool(3);
+    ThreadPool* threadPool = new ThreadPool(NUM_THREADS);
 
     if (option_urlset == 0){
         SetList urlSet;
