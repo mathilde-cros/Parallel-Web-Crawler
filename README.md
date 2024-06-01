@@ -25,10 +25,12 @@ make
 ./webcrawler <SET_OPTION> <URL>
 ``` 
 
-With \<SET_OPTION> a number designing the data structure used to store the URLs:
-0 being the SetList, 1 being the Coarse Hash Table and 2 being the Striped Hash Table.
-
 With \<URL> the URL to crawl in the format: http://... or https://...
+
+And with \<SET_OPTION> being 0, 1 or 2 according to the store method you wish to use for the URLs:
+- 0 : SetList
+- 1 : CoarseHashTable
+- 2 : StripedHashTable
 
 To use the parallel version, just replace webcrawler by webcrawler_parallel:
 ``` sh
@@ -39,5 +41,4 @@ make
 ## Authors
 
 Mathilde Cros (mathilde.cros@polytechnique.edu)
-
 Jasmine Watissee (jasmine.watissee@polytechnique.edu)
