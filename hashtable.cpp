@@ -8,6 +8,7 @@
 class SetList {
 private:
     std::vector<std::string> urls;
+    std::mutex lock;
     int size;
 
 public:
@@ -16,29 +17,34 @@ public:
     // Add a URL to the list
     bool addURL(const std::string& url) {
         if (containsURL(url)) return false;
+        std::lock_guard<std::mutex> guard(lock);
         urls.push_back(url);
         size++;
         return true;
     }
 
     int getSize(){
+        std::lock_guard<std::mutex> guard(lock);
         return size;
     }
 
     // Display all URLs in the list
-    void display() const {
+    void display() {
+        std::lock_guard<std::mutex> guard(lock);
         for (const auto& url : urls) {
             std::cout << url << std::endl;
         }
     }
 
     // Check if a URL is present in the list
-    bool containsURL(const std::string& url) const {
+    bool containsURL(const std::string& url) {
+        std::lock_guard<std::mutex> guard(lock);
         return std::find(urls.begin(), urls.end(), url) != urls.end();
     }
 
     // Clear the list of URLs
     void clearList() {
+        std::lock_guard<std::mutex> guard(lock);
         urls.clear();
     }
 };

@@ -22,10 +22,19 @@ To compile and run the code, you need [libcurl](https://curl.se/libcurl/) instal
 To compile and run the code, you can do:
 ``` sh
 make 
-./webcrawler <URL>
+./webcrawler <SET_OPTION> <URL>
 ``` 
 
+With \<SET_OPTION> a number designing the data structure used to store the URLs:
+0 being the SetList, 1 being the Coarse Hash Table and 2 being the Striped Hash Table.
+
 With \<URL> the URL to crawl in the format: http://... or https://...
+
+To use the parallel version, just replace webcrawler by webcrawler_parallel:
+``` sh
+make 
+./webcrawler_parallel <SET_OPTION> <URL>
+``` 
 
 ## Authors
 
