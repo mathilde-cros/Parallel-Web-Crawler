@@ -41,4 +41,5 @@ make
 ## Authors
 
 Mathilde Cros (mathilde.cros@polytechnique.edu)
+
 Jasmine Watissee (jasmine.watissee@polytechnique.edu)
