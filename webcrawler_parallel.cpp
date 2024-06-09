@@ -12,8 +12,6 @@
 #include "hashtable.cpp"
 #include "threadpool.cpp"
 
-#define NUM_THREADS 3
-
 // Callback function to receive HTTP response
 size_t writeCallback(char* ptr, size_t size, size_t nmemb, std::string* data) {
     data->append(ptr, size * nmemb);
@@ -124,12 +122,13 @@ void crawl_parallel(std::string url, const std::string& base_url, T& urlSet, Thr
 
 int main(int argc, char* argv[]) {
 
-    if (argc != 3){
+    if (argc != 4){
         std::cerr << "Invalid command, please give your command as:" << std::endl;
-        std::cerr << "./webcrawler <opt_set> <url>" << std::endl;
+        std::cerr << "./webcrawler <opt_set> <url> <num_threads>" << std::endl;
         std::cerr << "opt_set being 0 (SetList), 1 (CoarsedHashTable), or 2 (StripedHashTable)" << std::endl;
-        std::cerr << "\t\t defining the set you want to use to store the urls" << std::endl;
-        std::cerr << "url being the url you want to crawl" << std::endl;
+        std::cerr << "\t\t defining the set you want to use to store the URLs" << std::endl;
+        std::cerr << "url being the URL you want to crawl" << std::endl;
+        std::cerr << "num_threads being the number of threads to use" << std::endl;
         return 1;
     }
 
@@ -137,6 +136,7 @@ int main(int argc, char* argv[]) {
 
     int option_urlset = std::stoi(argv[1]);
     std::string url = argv[2];
+    int num_threads = std::stoi(argv[3]);
 
     // Keep only url starting like first one in order to avoid crawling the whole internet (ex. redirects to instagram.com ...)!
     std::regex baseUrlRegex(R"((https?://[^/]+))");
@@ -157,7 +157,7 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    ThreadPool* threadPool = new ThreadPool(NUM_THREADS);
+    ThreadPool* threadPool = new ThreadPool(num_threads);
 
     if (option_urlset == 0){
         SetList urlSet;
