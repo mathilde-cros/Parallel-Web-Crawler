@@ -74,11 +74,12 @@ std::string fetchHTML(const std::string& url) {
 // Parallel function to extract URLs from crawling the HTML content using regex
 template <class T>
 void crawl_parallel(std::string url, const std::string& base_url, T& urlSet, ThreadPool& threadPool) {
-    std::string html = fetchHTML(url);
-    if (html.empty()) {
+    if (!urlSet.addURL(url)) {
         return;
     }
-    if (!urlSet.addURL(url)){
+
+    std::string html = fetchHTML(url);
+    if (html.empty()) {
         return;
     }
     // Regular expression to find URLs in HTML
@@ -110,13 +111,12 @@ void crawl_parallel(std::string url, const std::string& base_url, T& urlSet, Thr
         if (url2.find('?') != std::string::npos){  // Remove arguments on page
             url2 = url2.substr(0, url2.find("?"));
         }
-        if (urlSet.containsURL(url2)) {
-            continue;
-        }
 
-        threadPool.add_task_to_queue([url2, base_url, &urlSet, &threadPool]() {
-            crawl_parallel(url2, base_url, urlSet, threadPool);
-        });
+        if (!urlSet.containsURL(url2)) {
+            threadPool.add_task_to_queue([url2, base_url, &urlSet, &threadPool]() {
+                crawl_parallel(url2, base_url, urlSet, threadPool);
+            });
+        }
     }
 }
 
@@ -125,7 +125,7 @@ int main(int argc, char* argv[]) {
     if (argc != 4){
         std::cerr << "Invalid command, please give your command as:" << std::endl;
         std::cerr << "./webcrawler <opt_set> <url> <num_threads>" << std::endl;
-        std::cerr << "opt_set being 0 (SetList), 1 (CoarsedHashTable), or 2 (StripedHashTable)" << std::endl;
+        std::cerr << "opt_set being 0 (SetList), 1 (CoarseHashTable), or 2 (StripedHashTable)" << std::endl;
         std::cerr << "\t\t defining the set you want to use to store the URLs" << std::endl;
         std::cerr << "url being the URL you want to crawl" << std::endl;
         std::cerr << "num_threads being the number of threads to use" << std::endl;
