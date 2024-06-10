@@ -35,8 +35,10 @@ And with \<SET_OPTION> being 0, 1 or 2 according to the store method you wish to
 To use the parallel version, just replace webcrawler by webcrawler_parallel:
 ``` sh
 make 
-./webcrawler_parallel <SET_OPTION> <URL>
+./webcrawler_parallel <SET_OPTION> <URL> <NUM_THREADS>
 ``` 
+
+With \<NUM_THREADS> the number of threads to use
 
 ## Authors
 
