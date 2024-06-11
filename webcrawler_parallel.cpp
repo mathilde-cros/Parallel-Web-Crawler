@@ -73,9 +73,12 @@ std::string fetchHTML(const std::string& url) {
 
 // Parallel function to extract URLs from crawling the HTML content using regex
 template <class T>
-void crawl_parallel(std::string url, const std::string& base_url, T& urlSet, ThreadPool& threadPool) {
-    if (!urlSet.addURL(url)) {
-        return;
+void crawl_parallel(std::string url, const std::string& base_url, T& urlSet, ThreadPool& threadPool, std::mutex& setMutex) {
+    {
+        std::lock_guard<std::mutex> lock(setMutex);
+        if (!urlSet.addURL(url)) {
+            return;
+        }
     }
 
     std::string html = fetchHTML(url);
@@ -112,10 +115,13 @@ void crawl_parallel(std::string url, const std::string& base_url, T& urlSet, Thr
             url2 = url2.substr(0, url2.find("?"));
         }
 
-        if (!urlSet.containsURL(url2)) {
-            threadPool.add_task_to_queue([url2, base_url, &urlSet, &threadPool]() {
-                crawl_parallel(url2, base_url, urlSet, threadPool);
-            });
+        {
+            std::lock_guard<std::mutex> lock(setMutex);
+            if (!urlSet.containsURL(url2)) {
+                threadPool.add_task_to_queue([url2, base_url, &urlSet, &threadPool, &setMutex]() {
+                    crawl_parallel(url2, base_url, urlSet, threadPool, setMutex);
+                });
+            }
         }
     }
 }
@@ -158,11 +164,12 @@ int main(int argc, char* argv[]) {
     }
 
     ThreadPool* threadPool = new ThreadPool(num_threads);
+    std::mutex setMutex;
 
     if (option_urlset == 0){
         SetList urlSet;
-        threadPool->add_task_to_queue([url, base_url, &urlSet, &threadPool]() {
-            crawl_parallel(url, base_url, urlSet, *threadPool);
+        threadPool->add_task_to_queue([url, base_url, &urlSet, &threadPool, &setMutex]() {
+            crawl_parallel(url, base_url, urlSet, *threadPool, setMutex);
         });
         delete threadPool;
         std::cout << "URLs found" << std::endl;
@@ -170,8 +177,8 @@ int main(int argc, char* argv[]) {
         std::cout << "Number of URLs: " << urlSet.getSize() << std::endl;
     } else if (option_urlset == 1){
         CoarseHashTable<std::string> urlSet(32);
-        threadPool->add_task_to_queue([url, base_url, &urlSet, &threadPool]() {
-            crawl_parallel(url, base_url, urlSet, *threadPool);
+        threadPool->add_task_to_queue([url, base_url, &urlSet, &threadPool, &setMutex]() {
+            crawl_parallel(url, base_url, urlSet, *threadPool, setMutex);
         });
         delete threadPool;
         std::cout << "URLs found" << std::endl;
@@ -179,8 +186,8 @@ int main(int argc, char* argv[]) {
         std::cout << "Number of URLs: " << urlSet.getSize() << std::endl;
     } else if (option_urlset == 2){
         StripedHashTable<std::string> urlSet(32);
-        threadPool->add_task_to_queue([url, base_url, &urlSet, &threadPool]() {
-            crawl_parallel(url, base_url, urlSet, *threadPool);
+        threadPool->add_task_to_queue([url, base_url, &urlSet, &threadPool, &setMutex]() {
+            crawl_parallel(url, base_url, urlSet, *threadPool, setMutex);
         });
         delete threadPool;
         std::cout << "URLs found" << std::endl;
